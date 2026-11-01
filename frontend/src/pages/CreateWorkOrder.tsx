@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import Navbar from "../components/Navbar.tsx";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";import Navbar from "../components/Navbar.tsx";
+import { apiRequest } from "../services/api";
+    import { useSearchParams } from "react-router-dom";
 
 function CreateWorkOrder() {
 
@@ -60,64 +59,24 @@ function CreateWorkOrder() {
     // =========================================
 
     const loadCustomers = async () => {
-
         try {
-
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                "http://localhost:8080/customers",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            setCustomers(response.data);
-
+            const data = await apiRequest("/customers");
+            setCustomers(data);
         } catch (error) {
-
-            console.error(
-                "Failed to load customers:",
-                error
-            );
-
+            console.error("Failed to load customers:", error);
         }
-
     };
-
 
     // =========================================
     // LOAD SITES
     // =========================================
-
     const loadSites = async () => {
-
         try {
-
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                "http://localhost:8080/sites",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            setSites(response.data);
-
+            const data = await apiRequest("/sites");
+            setSites(data);
         } catch (error) {
-
-            console.error(
-                "Failed to load sites:",
-                error
-            );
-
+            console.error("Failed to load sites:", error);
         }
-
     };
 
 
@@ -126,167 +85,67 @@ function CreateWorkOrder() {
     // =========================================
 
     const loadServiceRequest = async () => {
-
         try {
-
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                `http://localhost:8080/service-requests/${serviceRequestId}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
+            const request = await apiRequest(
+                `/service-requests/${serviceRequestId}`
             );
 
-            const request = response.data;
+            console.log("SERVICE REQUEST:", request);
 
-            console.log(
-                "SERVICE REQUEST:",
-                request
-            );
-
-
-            // Automatically fill Work Order details
-
-            setTitle(
-                request.title || ""
-            );
-
-            setDescription(
-                request.description || ""
-            );
-
-            setPriority(
-                request.priority || ""
-            );
-
-
-            // Automatically select customer
+            setTitle(request.title || "");
+            setDescription(request.description || "");
+            setPriority(request.priority || "");
 
             if (request.customer?.id) {
-
-                setCustomerId(
-                    String(request.customer.id)
-                );
-
+                setCustomerId(String(request.customer.id));
             }
-
-
-            // Automatically select site
-            // if Service Request has one
 
             if (request.site?.id) {
-
-                setSiteId(
-                    String(request.site.id)
-                );
-
+                setSiteId(String(request.site.id));
             }
-
         } catch (error) {
-
-            console.error(
-                "Failed to load service request:",
-                error
-            );
-
-            alert(
-                "Failed to load service request."
-            );
-
+            console.error("Failed to load service request:", error);
+            alert("Failed to load service request.");
         }
-
     };
-
 
     // =========================================
     // CREATE WORK ORDER
     // =========================================
 
-    const handleSubmit = async (
-        e: React.FormEvent
-    ) => {
-
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-
-        // Basic validation
-
         if (!customerId) {
-
-            alert(
-                "Please select a customer."
-            );
-
+            alert("Please select a customer.");
             return;
-
         }
-
 
         if (!priority) {
-
-            alert(
-                "Please select a priority."
-            );
-
+            alert("Please select a priority.");
             return;
-
         }
 
-
         try {
-
-            const token =
-                localStorage.getItem("token");
-
-
-            // Send only IDs for relationships
-
-            await axios.post(
-                "http://localhost:8080/work-orders",
-                {
-
+            await apiRequest("/work-orders", {
+                method: "POST",
+                body: JSON.stringify({
                     code,
-
                     title,
-
                     description,
-
                     priority,
-
                     status: "NEW",
-
-                    slaDueAt:
-                        slaDueAt || null,
-
+                    slaDueAt: slaDueAt || null,
                     customer: {
                         id: Number(customerId),
                     },
-
                     site: siteId
-                        ? {
-                            id: Number(siteId),
-                        }
+                        ? { id: Number(siteId) }
                         : null,
+                }),
+            });
 
-                },
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`,
-                    },
-                }
-            );
-
-
-            alert(
-                "Work order created successfully!"
-            );
-
-
-            // Clear form
+            alert("Work order created successfully!");
 
             setCode("");
             setTitle("");
@@ -296,26 +155,11 @@ function CreateWorkOrder() {
             setCustomerId("");
             setSiteId("");
 
-
-            // Go back to Work Orders
-
-            window.location.href =
-                "/work-orders";
-
-
+            window.location.href = "/work-orders";
         } catch (error) {
-
-            console.error(
-                "Failed to create work order:",
-                error
-            );
-
-            alert(
-                "Failed to create work order."
-            );
-
+            console.error("Failed to create work order:", error);
+            alert("Failed to create work order.");
         }
-
     };
 
 
@@ -362,8 +206,7 @@ function CreateWorkOrder() {
                     FORM
                 ====================================== */}
 
-                <div className="form-card">
-
+                <div className="form-card create-work-order-card">
 
                     <form onSubmit={handleSubmit}>
 

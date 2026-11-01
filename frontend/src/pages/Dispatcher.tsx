@@ -1,7 +1,8 @@
 
 import { useEffect, useState } from "react";
+import { apiRequest } from "../services/api";
 import Navbar from "../components/Navbar.tsx";
-import axios from "axios";
+import NotificationBell from "../components/NotificationBell";
 
 interface WorkOrder {
     id: number;
@@ -61,60 +62,27 @@ function Dispatcher() {
     }, []);
 
     const fetchWorkOrders = async () => {
-
         try {
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                "http://localhost:8080/work-orders",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            setWorkOrders(response.data);
-
+            const data = await apiRequest("/work-orders");
+            setWorkOrders(data);
         } catch (error) {
-
             console.error("Error fetching work orders:", error);
             alert("Failed to load work orders.");
-
         } finally {
-
             setLoading(false);
-
         }
     };
-
     const fetchServiceRequests = async () => {
-
         try {
-            const token = localStorage.getItem("token");
+            const data = await apiRequest("/service-requests");
 
-            const response = await axios.get(
-                "http://localhost:8080/service-requests",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            console.log("SERVICE REQUESTS:", response.data);
-
-            setServiceRequests(response.data);
-
+            console.log("SERVICE REQUESTS:", data);
+            setServiceRequests(data);
         } catch (error) {
-
             console.error("Error fetching service requests:", error);
             alert("Failed to load service requests.");
-
         } finally {
-
             setRequestLoading(false);
-
         }
     };
 
@@ -125,17 +93,18 @@ function Dispatcher() {
 
             <main className="main-content">
 
-                <div className="page-header">
+                <div className="page-header dispatcher-page-header">
                     <div>
                         <h1>Dispatcher Dashboard</h1>
                         <p>Manage service requests, work orders and technicians.</p>
                     </div>
+
+                    <NotificationBell />
                 </div>
 
                 {/* Dashboard Cards */}
 
-                <div className="dashboard-grid">
-
+                <div className="dashboard-grid dispatcher-stats-grid">
                     <div className="dashboard-card">
                         <h3>Service Requests</h3>
                         <p>
@@ -171,7 +140,7 @@ function Dispatcher() {
                 {/* Service Requests */}
 
                 <div
-                    className="dashboard-card"
+                    className="dashboard-card dispatcher-table-card"
                     style={{ marginTop: "25px" }}
                 >
 

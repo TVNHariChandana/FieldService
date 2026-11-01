@@ -1,5 +1,5 @@
 import Navbar from "../components/Navbar";
-
+import NotificationBell from "../components/NotificationBell";
 function Technician() {
     return (
         <div className="app-layout">
@@ -7,8 +7,7 @@ function Technician() {
             <Navbar />
 
             <main className="main-content">
-
-                <div className="page-header">
+                <div className="page-header technician-page-header">
                     <div>
                         <h1>Technician Dashboard</h1>
 
@@ -17,6 +16,8 @@ function Technician() {
                             their status.
                         </p>
                     </div>
+
+                    <NotificationBell />
                 </div>
 
                 <div className="dashboard-grid">

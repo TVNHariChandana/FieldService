@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import { apiRequest } from "../services/api";
 import Navbar from "../components/Navbar";
 
 function CreateServiceRequest() {
@@ -20,135 +20,69 @@ function CreateServiceRequest() {
     // CREATE SERVICE REQUEST
     // ================================
 
-    const handleSubmit = async (
-        e: React.FormEvent
-    ) => {
 
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         setSuccessMessage("");
         setErrorMessage("");
 
-
-        // Validation
-
         if (!title.trim()) {
-
-            setErrorMessage(
-                "Please enter a title."
-            );
-
+            setErrorMessage("Please enter a title.");
             return;
         }
-
 
         if (!description.trim()) {
-
-            setErrorMessage(
-                "Please enter a description."
-            );
-
+            setErrorMessage("Please enter a description.");
             return;
         }
 
-
         try {
-
             setSubmitting(true);
 
-            const token =
-                localStorage.getItem("token");
-
+            const token = localStorage.getItem("token");
 
             if (!token) {
-
-                setErrorMessage(
-                    "You are not logged in."
-                );
-
+                setErrorMessage("You are not logged in.");
                 return;
             }
 
-
-            // Service request object
-
             const serviceRequest = {
-
                 title: title.trim(),
-
-                description:
-                    description.trim(),
-
+                description: description.trim(),
                 status: "OPEN",
-
-                priority: priority,
-
+                priority,
                 customer: {
-                    id: customerId
-                }
-
+                    id: customerId,
+                },
             };
 
-
-            // POST request
-
-            await axios.post(
-                "http://localhost:8080/service-requests",
-                serviceRequest,
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`,
-                        "Content-Type":
-                            "application/json"
-                    }
-                }
-            );
-
+            await apiRequest("/service-requests", {
+                method: "POST",
+                body: JSON.stringify(serviceRequest),
+            });
 
             setSuccessMessage(
                 "✓ Service request created successfully!"
             );
 
-
-            // Clear form
-
             setTitle("");
             setDescription("");
             setPriority("MEDIUM");
-
-
         } catch (error) {
-
             console.error(
                 "FAILED TO CREATE SERVICE REQUEST:",
                 error
             );
 
-
-            if (
-                axios.isAxiosError(error) &&
-                error.response?.data
-            ) {
-
-                console.log(
-                    "BACKEND ERROR:",
-                    error.response.data
-                );
-
-            }
-
-
             setErrorMessage(
-                "Failed to create service request. Please try again."
+                error instanceof Error
+                    ? `Failed to create service request: ${error.message}`
+                    : "Failed to create service request. Please try again."
             );
-
         } finally {
-
             setSubmitting(false);
-
         }
-
     };
 
 

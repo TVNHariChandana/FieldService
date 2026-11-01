@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { apiRequest } from "../services/api";
 import Navbar from "../components/Navbar.tsx";
 
 function Customers() {
@@ -14,60 +14,36 @@ function Customers() {
     useEffect(() => {
         loadCustomers();
     }, []);
-
     const loadCustomers = async () => {
         try {
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                "http://localhost:8080/customers",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            setCustomers(response.data);
+            const data = await apiRequest("/customers");
+            setCustomers(data);
         } catch (error) {
             console.error("Failed to load customers:", error);
         }
     };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         try {
-            const token = localStorage.getItem("token");
-
             const customerData = {
                 name,
                 email,
                 phone,
             };
 
-            if (editingId) {
-                await axios.put(
-                    `http://localhost:8080/customers/${editingId}`,
-                    customerData,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
+            if (editingId !== null) {
+                await apiRequest(`/customers/${editingId}`, {
+                    method: "PUT",
+                    body: JSON.stringify(customerData),
+                });
 
                 alert("Customer updated successfully!");
             } else {
-                await axios.post(
-                    "http://localhost:8080/customers",
-                    customerData,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
+                await apiRequest("/customers", {
+                    method: "POST",
+                    body: JSON.stringify(customerData),
+                });
 
                 alert("Customer created successfully!");
             }
@@ -77,11 +53,14 @@ function Customers() {
             setPhone("");
             setEditingId(null);
 
-            loadCustomers();
-
+            await loadCustomers();
         } catch (error) {
             console.error("Customer operation failed:", error);
-            alert("Failed to save customer.");
+            alert(
+                error instanceof Error
+                    ? `Failed to save customer: ${error.message}`
+                    : "Failed to save customer."
+            );
         }
     };
 
@@ -98,27 +77,22 @@ function Customers() {
         }
 
         try {
-            const token = localStorage.getItem("token");
-
-            await axios.delete(
-                `http://localhost:8080/customers/${id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            await apiRequest(`/customers/${id}`, {
+                method: "DELETE",
+            });
 
             alert("Customer deleted successfully!");
 
-            loadCustomers();
-
+            await loadCustomers();
         } catch (error) {
             console.error("Failed to delete customer:", error);
-            alert("Failed to delete customer.");
+            alert(
+                error instanceof Error
+                    ? `Failed to delete customer: ${error.message}`
+                    : "Failed to delete customer."
+            );
         }
     };
-
     const handleCancel = () => {
         setName("");
         setEmail("");
@@ -132,8 +106,7 @@ function Customers() {
             <Navbar />
 
             <main className="main-content">
-
-                <div className="page-header">
+                <div className="page-header customers-page-header">
                     <div>
                         <h1>Customers</h1>
                         <p>
@@ -143,8 +116,7 @@ function Customers() {
                 </div>
 
                 {/* Customer Form */}
-                <div className="form-card">
-
+                <div className="form-card customers-form-card">
                     <h2>
                         {editingId
                             ? "Edit Customer"
@@ -226,8 +198,7 @@ function Customers() {
                 </div>
 
                 {/* Customer List */}
-                <div className="dashboard-card">
-
+                <div className="dashboard-card customers-list-card">
                     <div className="page-header">
                         <div>
                             <h2>Customer List</h2>

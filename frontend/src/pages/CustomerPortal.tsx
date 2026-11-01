@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { apiRequest } from "../services/api";
 import Navbar from "../components/Navbar";
-
+import NotificationBell from "../components/NotificationBell";
 interface ServiceRequest {
     id: number;
     title: string | null;
@@ -99,55 +99,26 @@ function CustomerPortal() {
     // ================================
     // LOAD SERVICE REQUESTS
     // ================================
-
     const loadServiceRequests = async () => {
-
         try {
-
             setLoading(true);
             setError("");
 
-            const token =
-                localStorage.getItem("token");
-
-            if (!token) {
-
-                setError(
-                    "You are not logged in."
-                );
-
+            if (!localStorage.getItem("token")) {
+                setError("You are not logged in.");
                 return;
             }
 
-            const response = await axios.get(
-                `http://localhost:8080/service-requests/customer/${customerId}`,
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
+            const data = await apiRequest(
+                `/service-requests/customer/${customerId}`
             );
 
-            setServiceRequests(
-                response.data
-            );
-
+            setServiceRequests(data);
         } catch (error) {
-
-            console.error(
-                "FAILED TO LOAD SERVICE REQUESTS:",
-                error
-            );
-
-            setError(
-                "Unable to load service requests."
-            );
-
+            console.error("FAILED TO LOAD SERVICE REQUESTS:", error);
+            setError("Unable to load service requests.");
         } finally {
-
             setLoading(false);
-
         }
     };
 
@@ -155,44 +126,18 @@ function CustomerPortal() {
     // ================================
     // LOAD WORK ORDERS
     // ================================
-
     const loadWorkOrders = async () => {
-
         try {
-
-            const token =
-                localStorage.getItem("token");
-
-            if (!token) {
+            if (!localStorage.getItem("token")) {
                 return;
             }
 
-            const response = await axios.get(
-                `http://localhost:8080/work-orders/customer/${customerId}`,
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
-            );
+            const data = await apiRequest("/work-orders/my-work-orders");
 
-            console.log(
-                "CUSTOMER WORK ORDERS:",
-                response.data
-            );
-
-            setWorkOrders(
-                response.data
-            );
-
+            console.log("CUSTOMER WORK ORDERS:", data);
+            setWorkOrders(data);
         } catch (error) {
-
-            console.error(
-                "FAILED TO LOAD WORK ORDERS:",
-                error
-            );
-
+            console.error("FAILED TO LOAD WORK ORDERS:", error);
         }
     };
 
@@ -202,62 +147,28 @@ function CustomerPortal() {
     // ================================
 
     const loadFeedback = async () => {
-
         try {
-
             setFeedbackLoading(true);
             setFeedbackError("");
 
-            const token =
-                localStorage.getItem("token");
-
-            if (!token) {
-
-                setFeedbackError(
-                    "You are not logged in."
-                );
-
+            if (!localStorage.getItem("token")) {
+                setFeedbackError("You are not logged in.");
                 return;
             }
 
-            const response = await axios.get(
-                `http://localhost:8080/feedback/customer/${customerId}`,
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${token}`
-                    }
-                }
+            const data = await apiRequest(
+                `/feedback/customer/${customerId}`
             );
 
-            console.log(
-                "CUSTOMER FEEDBACK:",
-                response.data
-            );
-
-            setFeedback(
-                response.data
-            );
-
+            console.log("CUSTOMER FEEDBACK:", data);
+            setFeedback(data);
         } catch (error) {
-
-            console.error(
-                "FAILED TO LOAD FEEDBACK:",
-                error
-            );
-
-            setFeedbackError(
-                "Unable to load feedback."
-            );
-
+            console.error("FAILED TO LOAD FEEDBACK:", error);
+            setFeedbackError("Unable to load feedback.");
         } finally {
-
             setFeedbackLoading(false);
-
         }
     };
-
-
     // ================================
     // CLOSED WORK ORDERS
     // WITHOUT FEEDBACK
@@ -322,156 +233,61 @@ function CustomerPortal() {
     // ================================
 
     const submitFeedback = async () => {
-
         setSuccessMessage("");
 
-        // Check work order
-
         if (!selectedWorkOrder) {
-
-            alert(
-                "Please select a work order."
-            );
-
+            alert("Please select a work order.");
             return;
         }
-
-
-        // Check rating
 
         if (rating === 0) {
-
-            alert(
-                "Please select a rating."
-            );
-
+            alert("Please select a rating.");
             return;
         }
-
-
-        // Check comment
 
         if (!comment.trim()) {
-
-            alert(
-                "Please enter your comment."
-            );
-
+            alert("Please enter your comment.");
             return;
         }
 
-
         try {
-
             setSubmitting(true);
 
-            const token =
-                localStorage.getItem("token");
-
-
-            if (!token) {
-
-                alert(
-                    "You are not logged in."
-                );
-
+            if (!localStorage.getItem("token")) {
+                alert("You are not logged in.");
                 return;
             }
 
+            const params = new URLSearchParams({
+                rating: String(rating),
+                comment: comment.trim(),
+            });
 
-            // POST feedback
-
-            await axios.post(
-
-                `http://localhost:8080/feedback/work-order/${selectedWorkOrder}/customer/${customerId}`,
-
-                null,
-
-                {
-                    params: {
-
-                        rating: rating,
-
-                        comment:
-                            comment.trim()
-
-                    },
-
-                    headers: {
-
-                        Authorization:
-                            `Bearer ${token}`
-
-                    }
-                }
-
+            await apiRequest(
+                `/feedback/work-order/${selectedWorkOrder}/customer/${customerId}?${params.toString()}`,
+                { method: "POST" }
             );
-
-
-            // Clear form
 
             setSelectedWorkOrder("");
-
             setRating(0);
-
             setComment("");
-
-
-            // Success message
-
-            setSuccessMessage(
-                "✓ Feedback submitted successfully!"
-            );
-
-
-            // Close form
-
+            setSuccessMessage("✓ Feedback submitted successfully!");
             setShowFeedbackForm(false);
 
-
-            // Reload feedback
-
             await loadFeedback();
-
-
-            // Reload work orders
-
             await loadWorkOrders();
-
-
         } catch (error) {
-
-            console.error(
-                "FAILED TO SUBMIT FEEDBACK:",
-                error
-            );
-
-
-            if (
-                axios.isAxiosError(error) &&
-                error.response?.data
-            ) {
-
-                console.log(
-                    "BACKEND ERROR:",
-                    error.response.data
-                );
-
-            }
-
+            console.error("FAILED TO SUBMIT FEEDBACK:", error);
 
             alert(
-                "Failed to submit feedback. Please check the work order status."
+                error instanceof Error
+                    ? `Failed to submit feedback: ${error.message}`
+                    : "Failed to submit feedback. Please check the work order status."
             );
-
         } finally {
-
             setSubmitting(false);
-
         }
-
     };
-
 
     // ================================
     // RETURN UI
@@ -490,26 +306,19 @@ function CustomerPortal() {
                 {/* PAGE HEADER */}
                 {/* ================================= */}
 
-                <div className="page-header">
-
+                <div className="page-header customer-page-header">
                     <div>
-
-                        <h1>
-                            Customer Portal
-                        </h1>
-
+                        <h1>Customer Portal</h1>
                         <p>
                             View your service requests
                             and work orders.
                         </p>
-
                     </div>
 
+                    <NotificationBell />
                 </div>
 
-
-                <div className="dashboard-grid">
-
+                <div className="dashboard-grid customer-dashboard-grid">
 
                     {/* ================================= */}
                     {/* MY WORK ORDERS */}
@@ -909,7 +718,7 @@ function CustomerPortal() {
                                             <button
                                                 key={star}
                                                 type="button"
-                                                className="feedback-star"
+                                                className={`feedback-star ${star <= rating ? "active" : ""}`}
                                                 onClick={() =>
                                                     setRating(
                                                         star

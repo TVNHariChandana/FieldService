@@ -1,18 +1,25 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 function Navbar() {
     const role = localStorage.getItem("role");
-
+    const [menuOpen, setMenuOpen] = useState(false);
     return (
-        <aside className="sidebar">
-
+        <aside className={`sidebar responsive-sidebar ${menuOpen ? "mobile-open" : ""}`}>
             <div className="logo">
                 <div className="logo-icon">▦</div>
                 <span>FieldService</span>
+                <button
+                    className="mobile-menu-toggle"
+                    onClick={() => setMenuOpen(!menuOpen)}
+                    aria-label="Toggle navigation menu"
+                    aria-expanded={menuOpen}
+                >
+                    ☰
+                </button>
             </div>
 
-            <nav className="side-nav">
-
+            <nav className="side-nav" onClick={() => setMenuOpen(false)}>
                 {/* Manager */}
                 {role === "MANAGER" && (
                     <>
@@ -35,6 +42,14 @@ function Navbar() {
                         <Link to="/parts" className="nav-item">
                             <span>◈</span> Parts
                         </Link>
+
+                        <Link to="/chat" className="nav-item">
+                            <span>☏</span> Chat & Conversations
+                        </Link>
+
+                        <Link to="/support" className="nav-item">
+                            <span>♧</span> Support
+                        </Link>
                     </>
                 )}
 
@@ -56,6 +71,10 @@ function Navbar() {
                         <Link to="/sites" className="nav-item">
                             <span>⌖</span> Sites
                         </Link>
+
+                        <Link to="/chat" className="nav-item">
+                            <span>☏</span> Chat & Conversations
+                        </Link>
                     </>
                 )}
 
@@ -73,6 +92,10 @@ function Navbar() {
                         <Link to="/parts" className="nav-item">
                             <span>◈</span> Parts
                         </Link>
+
+                        <Link to="/chat" className="nav-item">
+                            <span>☏</span> Chat & Conversations
+                        </Link>
                     </>
                 )}
 
@@ -89,6 +112,14 @@ function Navbar() {
 
                         <Link to="/sites" className="nav-item">
                             <span>⌖</span> My Sites
+                        </Link>
+
+                        <Link to="/chat" className="nav-item">
+                            <span>☏</span> Chat & Conversations
+                        </Link>
+
+                        <Link to="/support" className="nav-item">
+                            <span>♧</span> Support
                         </Link>
                     </>
                 )}

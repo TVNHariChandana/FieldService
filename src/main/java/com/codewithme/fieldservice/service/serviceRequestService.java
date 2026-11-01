@@ -1,8 +1,11 @@
 package com.codewithme.fieldservice.service;
 
 import com.codewithme.fieldservice.model.Customer;
+import com.codewithme.fieldservice.model.Role;
+import com.codewithme.fieldservice.model.UserAuth;
 import com.codewithme.fieldservice.model.serviceRequest;
 import com.codewithme.fieldservice.repository.CustomerRepository;
+import com.codewithme.fieldservice.repository.UserAuthRepository;
 import com.codewithme.fieldservice.repository.serviceRequestRepository;
 import org.springframework.stereotype.Service;
 
@@ -13,13 +16,16 @@ public class serviceRequestService {
 
     private final serviceRequestRepository serviceRequestRepository;
     private final CustomerRepository customerRepository;
-
+    private final UserAuthRepository userAuthRepository;
+    private final NotificationService notificationService;
     public serviceRequestService(
             serviceRequestRepository serviceRequestRepository,
-            CustomerRepository customerRepository) {
+            CustomerRepository customerRepository, UserAuthRepository userAuthRepository, NotificationService notificationService) {
 
         this.serviceRequestRepository = serviceRequestRepository;
         this.customerRepository = customerRepository;
+        this.userAuthRepository = userAuthRepository;
+        this.notificationService = notificationService;
     }
 
     public List<serviceRequest> getAllServiceRequests() {
@@ -50,7 +56,23 @@ public class serviceRequestService {
 
         serviceRequest.setCustomer(customer);
 
-        return serviceRequestRepository.save(serviceRequest);
+        serviceRequest savedRequest =
+                serviceRequestRepository.save(serviceRequest);
+
+        List<UserAuth> managers =
+                userAuthRepository.findByRole(Role.MANAGER);
+
+        for (UserAuth manager : managers) {
+            notificationService.createNotification(
+                    manager.getId(),
+                    "New Service Request",
+                    "A new service request has been submitted by a customer.",
+                    "SERVICE_REQUEST",
+                    savedRequest.getId()
+            );
+        }
+
+        return savedRequest;
     }
 
     public serviceRequest updateServiceRequest(

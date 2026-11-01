@@ -98,7 +98,13 @@ public class SecurityConfig {
                                                 "DISPATCHER",
                                                 "TECHNICIAN"
                                         )
-// Dashboard
+                                        // Chat APIs require an authenticated user
+                                        .requestMatchers("/api/chat/**").authenticated()
+                                        // Support APIs - only Customers and Managers
+                                        .requestMatchers("/api/support/**")
+                                        .hasAnyRole("CUSTOMER", "MANAGER")
+                                         .requestMatchers("/api/notifications/**")
+                                         .authenticated()
                                 .requestMatchers("/dashboard/**")
                                 .hasAnyRole(
                                         "ADMIN",

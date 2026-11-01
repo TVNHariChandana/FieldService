@@ -26,7 +26,7 @@ public class WorkOrderService {
     private final CustomerRepository customerRepository;
     private final UserAuthRepository userAuthRepository;
     private final PartRepository partRepository;
-
+    private final NotificationService notificationService;
     public WorkOrderService(
             WorkOrderRepository workOrderRepository,
             TechnicianRepository technicianRepository,
@@ -34,7 +34,7 @@ public class WorkOrderService {
             WorkOrderAssignmentHistoryRepository assignmentHistoryRepository,
             CustomerRepository customerRepository,
             UserAuthRepository userAuthRepository,
-            PartRepository partRepository) {
+            PartRepository partRepository, NotificationService notificationService) {
 
         this.workOrderRepository = workOrderRepository;
         this.technicianRepository = technicianRepository;
@@ -43,6 +43,7 @@ public class WorkOrderService {
         this.customerRepository = customerRepository;
         this.userAuthRepository = userAuthRepository;
         this.partRepository = partRepository;
+        this.notificationService = notificationService;
     }
 
     // Dashboard summary
@@ -215,6 +216,7 @@ public class WorkOrderService {
     }
 
     // Update work order status with authorization and transition checks
+    // Update work order status with authorization and transition checks
     @Transactional
     public WorkOrder updateStatus(
             Long workOrderId,
@@ -309,13 +311,114 @@ public class WorkOrderService {
 
         statusHistoryRepository.save(history);
 
-        // Update work order status
+        // Update and save work order
         workOrder.setStatus(newStatus);
 
-        return workOrderRepository.save(workOrder);
+        WorkOrder savedWorkOrder = workOrderRepository.save(workOrder);
+
+        String workOrderDetails = "Work Order "
+                + savedWorkOrder.getCode()
+                + " - "
+                + savedWorkOrder.getTitle();
+
+        // Notify Manager and Dispatcher when work starts/resumes
+        if (newStatus == WorkOrderStatus.IN_PROGRESS) {
+
+            notifyRole(
+                    Role.MANAGER,
+                    "Work Order Started",
+                    workOrderDetails + " is now IN_PROGRESS.",
+                    "WORK_ORDER_STATUS",
+                    savedWorkOrder.getId()
+            );
+
+            notifyRole(
+                    Role.DISPATCHER,
+                    "Work Order Started",
+                    workOrderDetails + " is now IN_PROGRESS.",
+                    "WORK_ORDER_STATUS",
+                    savedWorkOrder.getId()
+            );
+        }
+
+        // Notify Manager and Dispatcher when work is put on hold
+        if (newStatus == WorkOrderStatus.ON_HOLD) {
+
+            notifyRole(
+                    Role.MANAGER,
+                    "Work Order On Hold",
+                    workOrderDetails + " has been put ON_HOLD.",
+                    "WORK_ORDER_STATUS",
+                    savedWorkOrder.getId()
+            );
+
+            notifyRole(
+                    Role.DISPATCHER,
+                    "Work Order On Hold",
+                    workOrderDetails + " has been put ON_HOLD.",
+                    "WORK_ORDER_STATUS",
+                    savedWorkOrder.getId()
+            );
+        }
+
+        // Notify Customer, Manager and Dispatcher when work is completed
+        if (newStatus == WorkOrderStatus.COMPLETED) {
+
+            notifyCustomer(
+                    savedWorkOrder,
+                    "Work Order Completed",
+                    workOrderDetails + " has been completed by the Technician.",
+                    "WORK_ORDER_STATUS"
+            );
+
+            notifyRole(
+                    Role.MANAGER,
+                    "Work Order Completed",
+                    workOrderDetails + " has been completed.",
+                    "WORK_ORDER_STATUS",
+                    savedWorkOrder.getId()
+            );
+
+            notifyRole(
+                    Role.DISPATCHER,
+                    "Work Order Completed",
+                    workOrderDetails + " has been completed.",
+                    "WORK_ORDER_STATUS",
+                    savedWorkOrder.getId()
+            );
+        }
+
+        // Notify Technician, Customer and Dispatcher when Manager closes work
+        if (newStatus == WorkOrderStatus.CLOSED) {
+
+            notifyTechnician(
+                    savedWorkOrder,
+                    "Work Order Closed",
+                    workOrderDetails + " has been closed by the Manager.",
+                    "WORK_ORDER_STATUS"
+            );
+
+            notifyCustomer(
+                    savedWorkOrder,
+                    "Work Order Closed",
+                    workOrderDetails + " has been closed by the Manager.",
+                    "WORK_ORDER_STATUS"
+            );
+
+            notifyRole(
+                    Role.DISPATCHER,
+                    "Work Order Closed",
+                    workOrderDetails + " has been closed by the Manager.",
+                    "WORK_ORDER_STATUS",
+                    savedWorkOrder.getId()
+            );
+        }
+
+        return savedWorkOrder;
     }
 
     // Assign a technician to a work order
+    // Assign or reassign a technician to a work order
     @Transactional
     public WorkOrder assignTechnician(
             Long workOrderId,
@@ -351,6 +454,9 @@ public class WorkOrderService {
                     "This technician is already assigned to the work order");
         }
 
+        // Capture previous technician before reassignment
+        Technician previousTechnician = workOrder.getTechnician();
+
         // Assign technician
         workOrder.setTechnician(technician);
         workOrder.setStatus(WorkOrderStatus.ASSIGNED);
@@ -365,7 +471,7 @@ public class WorkOrderService {
 
         assignmentHistoryRepository.save(assignmentHistory);
 
-        // Save status history only when the status changes
+        // Save status history only when status changes
         if (currentStatus != WorkOrderStatus.ASSIGNED) {
 
             WorkOrderStatusHistory history = new WorkOrderStatusHistory();
@@ -379,9 +485,41 @@ public class WorkOrderService {
             statusHistoryRepository.save(history);
         }
 
-        return workOrderRepository.save(workOrder);
-    }
+        WorkOrder savedWorkOrder = workOrderRepository.save(workOrder);
 
+        String workOrderDetails = "Work Order "
+                + savedWorkOrder.getCode()
+                + " - "
+                + savedWorkOrder.getTitle();
+
+        // Notify newly assigned technician
+        notifyTechnician(
+                savedWorkOrder,
+                "New Work Order Assigned",
+                workOrderDetails + " has been assigned to you.",
+                "WORK_ORDER_ASSIGNED"
+        );
+
+        // Notify previous technician if reassigned to someone else
+        if (previousTechnician != null
+                && previousTechnician.getUsername() != null
+                && !previousTechnician.getUsername()
+                .equals(technician.getUsername())) {
+
+            userAuthRepository.findByUsername(previousTechnician.getUsername())
+                    .ifPresent(previousUser ->
+                            notificationService.createNotification(
+                                    previousUser.getId(),
+                                    "Work Order Reassigned",
+                                    workOrderDetails
+                                            + " has been reassigned to another Technician.",
+                                    "WORK_ORDER_ASSIGNED",
+                                    savedWorkOrder.getId()
+                            ));
+        }
+
+        return savedWorkOrder;
+    }
     // Calculate SLA based on priority
     public WorkOrder calculateSla(Long workOrderId) {
 
@@ -463,5 +601,73 @@ public class WorkOrderService {
         return workOrderRepository
                 .searchWorkOrders(keyword, status, priority, pageable)
                 .map(this::toDTO);
+    }
+    // Send notifications to all users with a particular role
+    private void notifyRole(
+            Role role,
+            String title,
+            String message,
+            String type,
+            Long relatedEntityId) {
+
+        List<UserAuth> users = userAuthRepository.findByRole(role);
+
+        for (UserAuth user : users) {
+            notificationService.createNotification(
+                    user.getId(),
+                    title,
+                    message,
+                    type,
+                    relatedEntityId
+            );
+        }
+    }
+
+    // Notify the assigned Technician
+    private void notifyTechnician(
+            WorkOrder workOrder,
+            String title,
+            String message,
+            String type) {
+
+        if (workOrder.getTechnician() == null
+                || workOrder.getTechnician().getUsername() == null) {
+            return;
+        }
+
+        userAuthRepository.findByUsername(
+                workOrder.getTechnician().getUsername()
+        ).ifPresent(user ->
+                notificationService.createNotification(
+                        user.getId(),
+                        title,
+                        message,
+                        type,
+                        workOrder.getId()
+                ));
+    }
+
+    // Notify the Customer
+    private void notifyCustomer(
+            WorkOrder workOrder,
+            String title,
+            String message,
+            String type) {
+
+        if (workOrder.getCustomer() == null
+                || workOrder.getCustomer().getEmail() == null) {
+            return;
+        }
+
+        userAuthRepository.findByEmail(
+                workOrder.getCustomer().getEmail()
+        ).ifPresent(user ->
+                notificationService.createNotification(
+                        user.getId(),
+                        title,
+                        message,
+                        type,
+                        workOrder.getId()
+                ));
     }
 }

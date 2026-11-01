@@ -54,3 +54,9 @@ frontend/dist/
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
+# Sensitive credentials and private keys
+*.pem
+*.key
+secrets/
+credentials/
+.DS_Store

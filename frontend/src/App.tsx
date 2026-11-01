@@ -18,7 +18,8 @@ import DispatcherLogin from "./pages/DispatcherLogin.tsx";
 import TechnicianLogin from "./pages/TechnicianLogin.tsx";
 import CustomerLogin from "./pages/CustomerLogin.tsx";
 import CreateServiceRequest from "./pages/CreateServiceRequest.tsx";
-
+import Chat from "./pages/Chat.tsx";
+import Support from "./pages/Support.tsx";
 function App() {
     return (
         <BrowserRouter>
@@ -78,7 +79,9 @@ function App() {
                 <Route path="/customers" element={<Customers />} />
                 <Route path="/sites" element={<Sites />} />
                 <Route path="/parts" element={<Parts />} />
-
+                {/* Chat & Conversations */}
+                <Route path="/chat" element={<Chat />} />
+                <Route path="/support" element={<Support />} />
             </Routes>
         </BrowserRouter>
     );

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { getWorkOrders } from "../services/workOrderService";
 import { useNavigate } from "react-router-dom";
-
 function KanbanBoard() {
     const [workOrders, setWorkOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -38,7 +37,7 @@ function KanbanBoard() {
     }
 
     return (
-        <div>
+        <div className="Kanban-page">
             <h1>Work Order Kanban Board</h1>
 
             <button onClick={() => navigate("/work-orders")}>
@@ -46,6 +45,7 @@ function KanbanBoard() {
             </button>
 
             <div
+                className="kanban-board"
                 style={{
                     display: "flex",
                     gap: "20px",
@@ -62,6 +62,7 @@ function KanbanBoard() {
                     return (
                         <div
                             key={status}
+                            className="kanban-column"
                             style={{
                                 minWidth: "280px",
                                 border: "1px solid #ccc",
@@ -80,6 +81,7 @@ function KanbanBoard() {
                                 orders.map((workOrder) => (
                                     <div
                                         key={workOrder.id}
+                                        className="kanban-card"
                                         style={{
                                             border: "1px solid #ddd",
                                             borderRadius: "6px",

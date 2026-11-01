@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import { apiRequest } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 function CustomerLogin() {
@@ -15,28 +15,28 @@ function CustomerLogin() {
 
         try {
 
-            const response = await axios.post(
-                "http://localhost:8080/api/user_auth/login",
-                {
+            const data = await apiRequest("/api/user_auth/login", {
+                method: "POST",
+                body: JSON.stringify({
                     username,
                     password,
-                }
-            );
+                }),
+            });
 
-            console.log("LOGIN RESPONSE:", response.data);
+            console.log("LOGIN RESPONSE:", data);
 
-            if (response.data.role !== "CUSTOMER") {
+            if (data.role !== "CUSTOMER") {
                 alert("This account is not a Customer account.");
                 return;
             }
 
-            localStorage.setItem("token", response.data.token);
-            localStorage.setItem("username", response.data.username);
-            localStorage.setItem("role", response.data.role);
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("username", data.username);
+            localStorage.setItem("role", data.role);
 
             alert("Customer login successful!");
-
             navigate("/customer");
+
 
         } catch (error) {
 

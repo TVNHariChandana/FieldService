@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { apiRequest } from "../services/api";
 import { useNavigate, useParams } from "react-router-dom";
 
 function EditWorkOrder() {
@@ -16,21 +16,11 @@ function EditWorkOrder() {
     useEffect(() => {
         loadWorkOrder();
     }, []);
-
     const loadWorkOrder = async () => {
         try {
-            const token = localStorage.getItem("token");
+            const data = await apiRequest("/work-orders");
 
-            const response = await axios.get(
-                `http://localhost:8080/work-orders`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            const workOrder = response.data.find(
+            const workOrder = data.find(
                 (item: any) => item.id === Number(id)
             );
 
@@ -45,6 +35,8 @@ function EditWorkOrder() {
                         ? workOrder.slaDueAt.slice(0, 16)
                         : ""
                 );
+            } else {
+                alert("Work order not found.");
             }
         } catch (error) {
             console.error("Failed to load work order:", error);
@@ -52,43 +44,36 @@ function EditWorkOrder() {
         }
     };
 
+
+
+
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
 
         try {
-            const token = localStorage.getItem("token");
-
-            await axios.put(
-                `http://localhost:8080/work-orders/${id}`,
-                {
+            await apiRequest(`/work-orders/${id}`, {
+                method: "PUT",
+                body: JSON.stringify({
                     code,
                     title,
                     description,
                     priority,
                     status,
                     slaDueAt: slaDueAt || null,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+                }),
+            });
 
             alert("Work order updated successfully!");
-
             navigate("/work-orders");
         } catch (error) {
             console.error("Failed to update work order:", error);
             alert("Failed to update work order.");
         }
     };
-
     return (
-        <div>
+        <div className="edit-work-order-page">
             <h1>Edit Work Order</h1>
-
-            <form onSubmit={handleUpdate}>
+            <form onSubmit={handleUpdate} className="edit-work-order-form">
                 <div>
                     <label>Code</label>
                     <input

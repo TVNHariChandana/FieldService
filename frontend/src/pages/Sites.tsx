@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { apiRequest } from "../services/api";
 import Navbar from "../components/Navbar.tsx";
 
 function Sites() {
@@ -21,18 +21,8 @@ function Sites() {
 
     const loadSites = async () => {
         try {
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                "http://localhost:8080/sites",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            setSites(response.data);
+            const data = await apiRequest("/sites");
+            setSites(data);
         } catch (error) {
             console.error("Failed to load sites:", error);
         }
@@ -40,18 +30,8 @@ function Sites() {
 
     const loadCustomers = async () => {
         try {
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                "http://localhost:8080/customers",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            setCustomers(response.data);
+            const data = await apiRequest("/customers");
+            setCustomers(data);
         } catch (error) {
             console.error("Failed to load customers:", error);
         }
@@ -61,8 +41,6 @@ function Sites() {
         e.preventDefault();
 
         try {
-            const token = localStorage.getItem("token");
-
             const selectedCustomer = customers.find(
                 (customer) => customer.id === Number(customerId)
             );
@@ -80,38 +58,31 @@ function Sites() {
                 customer: selectedCustomer,
             };
 
-            if (editingId) {
-                await axios.put(
-                    `http://localhost:8080/sites/${editingId}`,
-                    siteData,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
+            if (editingId !== null) {
+                await apiRequest(`/sites/${editingId}`, {
+                    method: "PUT",
+                    body: JSON.stringify(siteData),
+                });
 
                 alert("Site updated successfully!");
             } else {
-                await axios.post(
-                    "http://localhost:8080/sites",
-                    siteData,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
+                await apiRequest("/sites", {
+                    method: "POST",
+                    body: JSON.stringify(siteData),
+                });
 
                 alert("Site created successfully!");
             }
 
             clearForm();
-            loadSites();
-
+            await loadSites();
         } catch (error) {
             console.error("Site operation failed:", error);
-            alert("Failed to save site.");
+            alert(
+                error instanceof Error
+                    ? `Failed to save site: ${error.message}`
+                    : "Failed to save site."
+            );
         }
     };
 
@@ -130,33 +101,27 @@ function Sites() {
         }
     };
 
-    const handleDelete = async (id: number) => {
-        if (!window.confirm("Are you sure you want to delete this site?")) {
-            return;
-        }
+        const handleDelete = async (id: number) => {
+            if (!window.confirm("Are you sure you want to delete this site?")) {
+                return;
+            }
 
-        try {
-            const token = localStorage.getItem("token");
+            try {
+                await apiRequest(`/sites/${id}`, {
+                    method: "DELETE",
+                });
 
-            await axios.delete(
-                `http://localhost:8080/sites/${id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            alert("Site deleted successfully!");
-
-            loadSites();
-
-        } catch (error) {
-            console.error("Failed to delete site:", error);
-            alert("Failed to delete site.");
-        }
-    };
-
+                alert("Site deleted successfully!");
+                await loadSites();
+            } catch (error) {
+                console.error("Failed to delete site:", error);
+                alert(
+                    error instanceof Error
+                        ? `Failed to delete site: ${error.message}`
+                        : "Failed to delete site."
+                );
+            }
+        };
     const clearForm = () => {
         setAddress("");
         setCity("");
@@ -174,7 +139,7 @@ function Sites() {
             <main className="main-content">
 
                 {/* Page Header */}
-                <div className="page-header">
+                <div className="page-header sites-page-header">
                     <div>
                         <h1>Sites</h1>
                         <p>
@@ -184,8 +149,7 @@ function Sites() {
                 </div>
 
                 {/* Site Form */}
-                <div className="form-card">
-
+                <div className="form-card sites-form-card">
                     <h2>
                         {editingId
                             ? "Edit Site"
@@ -313,8 +277,7 @@ function Sites() {
                 </div>
 
                 {/* Sites List */}
-                <div className="dashboard-card">
-
+                <div className="dashboard-card sites-list-card">
                     <div className="page-header">
                         <div>
                             <h2>Site List</h2>

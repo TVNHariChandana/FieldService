@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import { apiRequest } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
 function Login() {
@@ -7,41 +7,49 @@ function Login() {
 
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
 
         try {
-            const response = await axios.post(
-                "http://localhost:8080/api/user_auth/login",
-                {
+            const data = await apiRequest("/api/user_auth/login", {
+                method: "POST",
+                body: JSON.stringify({
                     username,
                     password,
-                }
-            );
-            console.log("LOGIN RESPONSE:", response.data);
-            localStorage.setItem("token", response.data.token);
-            localStorage.setItem("username", response.data.username);
-            localStorage.setItem("role", response.data.role);
+                }),
+            });
+
+            console.log("LOGIN RESPONSE:", data);
+
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("username", data.username);
+            localStorage.setItem("role", data.role);
 
             alert("Login successful!");
 
-            if (response.data.role === "MANAGER") {
+            if (data.role === "MANAGER") {
                 navigate("/dashboard");
-            } else if (response.data.role === "DISPATCHER") {
+            } else if (data.role === "DISPATCHER") {
                 navigate("/dispatcher");
-            } else if (response.data.role === "TECHNICIAN") {
+            } else if (data.role === "TECHNICIAN") {
                 navigate("/technician");
-            } else if (response.data.role === "CUSTOMER") {
+            } else if (data.role === "CUSTOMER") {
                 navigate("/customer");
             } else {
                 navigate("/dashboard");
             }
-
         } catch (error) {
-            console.error(error);
-            alert("Login failed. Please check your username and password.");
+            console.error("Login failed:", error);
+
+            alert(
+                error instanceof Error
+                    ? `Login failed: ${error.message}`
+                    : "Login failed. Please check your username and password."
+            );
         }
     };
+
     return (
         <div className="login-page">
 

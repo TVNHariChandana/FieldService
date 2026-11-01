@@ -1,15 +1,13 @@
-import axios from "axios";
 
-const API_URL = "http://localhost:8080/work-orders";
+import { apiRequest } from "./api";
 
 export const getWorkOrders = async () => {
-    const token = localStorage.getItem("token");
+    return await apiRequest("/work-orders");
+};
 
-    const response = await axios.get(API_URL, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    });
-
-    return response.data;
+export const getTechnicianWorkOrders = async (technicianId: number) => {
+    return await apiRequest(`/work-orders/search/technician?technicianId=${technicianId}`);
+};
+export const getCustomerWorkOrders = async () => {
+    return await apiRequest("/work-orders/my-work-orders");
 };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { apiRequest } from "../services/api";
 import Navbar from "../components/Navbar";
 
 function Parts() {
@@ -17,34 +17,21 @@ function Parts() {
     useEffect(() => {
         loadParts();
     }, []);
-
     const loadParts = async () => {
         try {
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                "http://localhost:8080/parts",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            setParts(response.data);
+            const data = await apiRequest("/parts");
+            setParts(data);
         } catch (error) {
             console.error("Failed to load parts:", error);
+            alert("Failed to load parts.");
         } finally {
             setLoading(false);
         }
     };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         try {
-            const token = localStorage.getItem("token");
-
             const partData = {
                 name,
                 partNumber,
@@ -53,41 +40,33 @@ function Parts() {
                 quantity: Number(quantity),
             };
 
-            if (editingId) {
-                await axios.put(
-                    `http://localhost:8080/parts/${editingId}`,
-                    partData,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
+            if (editingId !== null) {
+                await apiRequest(`/parts/${editingId}`, {
+                    method: "PUT",
+                    body: JSON.stringify(partData),
+                });
 
                 alert("Part updated successfully!");
             } else {
-                await axios.post(
-                    "http://localhost:8080/parts",
-                    partData,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
+                await apiRequest("/parts", {
+                    method: "POST",
+                    body: JSON.stringify(partData),
+                });
 
                 alert("Part added successfully!");
             }
 
             clearForm();
-            loadParts();
-
+            await loadParts();
         } catch (error) {
             console.error("Part operation failed:", error);
-            alert("Failed to save part.");
+            alert(
+                error instanceof Error
+                    ? `Failed to save part: ${error.message}`
+                    : "Failed to save part."
+            );
         }
     };
-
     const handleEdit = (part: any) => {
         setEditingId(part.id);
 
@@ -121,27 +100,21 @@ function Parts() {
         }
 
         try {
-            const token = localStorage.getItem("token");
-
-            await axios.delete(
-                `http://localhost:8080/parts/${id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            await apiRequest(`/parts/${id}`, {
+                method: "DELETE",
+            });
 
             alert("Part deleted successfully!");
-
-            loadParts();
-
+            await loadParts();
         } catch (error) {
             console.error("Failed to delete part:", error);
-            alert("Failed to delete part.");
+            alert(
+                error instanceof Error
+                    ? `Failed to delete part: ${error.message}`
+                    : "Failed to delete part."
+            );
         }
     };
-
     const clearForm = () => {
         setName("");
         setPartNumber("");

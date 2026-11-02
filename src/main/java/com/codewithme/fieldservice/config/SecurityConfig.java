@@ -50,7 +50,7 @@ public class SecurityConfig {
 
                         )
                         .authorizeHttpRequests(auth -> auth
-
+                                        .requestMatchers("/").permitAll()
                                 // Allow CORS preflight requests
                                         .requestMatchers(
                                                 HttpMethod.OPTIONS,
